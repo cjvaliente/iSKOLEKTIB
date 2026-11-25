@@ -4,14 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>iSKOLEKTIB: All Scholars, One Collective</title>
-  <link rel="icon" type="image/png" href="Iskolektib.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="img/iskolektib-192.webp">
+  <meta name="theme-color" content="#1d1726">
+  <link rel="stylesheet" href="style.css?v=20261125d">
 </head>
 <body class="logged-out">
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v10.5A1.5 1.5 0 0 0 6.5 21H10v-6h4v6h3.5a1.5 1.5 0 0 0 1.5-1.5V9"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.6"/><rect x="14" y="3" width="7" height="5" rx="1.6"/><rect x="14" y="12" width="7" height="9" rx="1.6"/><rect x="3" y="16" width="7" height="5" rx="1.6"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-banknote" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.7a3.5 3.5 0 0 1 0 6.6M18.5 14.2A6.5 6.5 0 0 1 21.5 20"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+</svg>
+<a class="skip-link" href="#main-content">Skip to content</a>
 
 <div class="login-screen" id="login-screen">
   <div class="login-box">
-    <img class="login-logo" src="Iskolektib.png" alt="iSKOLEKTIB logo">
+    <img class="login-logo" src="img/iskolektib-192.webp" alt="iSKOLEKTIB logo">
     <h1 class="brand-name">i<span>SKOLEKTIB</span></h1>
     <p class="login-sub">All Scholars, One Collective</p>
 
@@ -115,8 +129,8 @@
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <div class="brand-row">
-        <img class="brand-logo" src="Iskolektib.png" alt="iSKOLEKTIB logo">
-        <h1 class="brand-name">i<span>SKOLEKTIB</span></h1>
+        <img class="brand-logo" src="img/iskolektib-192.webp" alt="iSKOLEKTIB logo">
+        <p class="brand-name">i<span>SKOLEKTIB</span></p>
       </div>
       <p class="brand-sub">All Scholars, One Collective</p>
     </div>
@@ -124,13 +138,14 @@
     <div class="role-info" id="role-info"></div>
 
     <nav class="nav" aria-label="Main navigation">
-      <button class="nav-btn" data-action="goto" data-page="manage" data-roles="admin"><span class="nav-icon">&#128221;</span> Manage Scholarships</button>
-      <button class="nav-btn" data-action="goto" data-page="studentapps" data-roles="admin"><span class="nav-icon">&#128101;</span> Student Applications</button>
-      <button class="nav-btn active" data-action="goto" data-page="dashboard" data-roles="student"><span class="nav-icon">&#127968;</span> Dashboard</button>
-      <button class="nav-btn" data-action="goto" data-page="matching" data-roles="student"><span class="nav-icon">&#127919;</span> Scholarship Matching</button>
-      <button class="nav-btn" data-action="goto" data-page="marketplace" data-roles="student admin"><span class="nav-icon">&#128722;</span> Scholarship Marketplace</button>
-      <button class="nav-btn" data-action="goto" data-page="applications" data-roles="student"><span class="nav-icon">&#128196;</span> My Applications</button>
-      <button class="nav-btn" data-action="goto" data-page="tracking" data-roles="student"><span class="nav-icon">&#128176;</span> Tracking &amp; Disbursement</button>
+      <button class="nav-btn" data-action="goto" data-page="manage" data-roles="admin"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-pen"/></svg> Manage Scholarships</button>
+      <button class="nav-btn" data-action="goto" data-page="studentapps" data-roles="admin"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-users"/></svg> Student Applications</button>
+      <button class="nav-btn active" data-action="goto" data-page="home" data-roles="student"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-home"/></svg> Home</button>
+      <button class="nav-btn" data-action="goto" data-page="dashboard" data-roles="student"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-dashboard"/></svg> Dashboard</button>
+      <button class="nav-btn" data-action="goto" data-page="matching" data-roles="student"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-target"/></svg> Matching</button>
+      <button class="nav-btn" data-action="goto" data-page="marketplace" data-roles="student admin"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-grid"/></svg> Marketplace</button>
+      <button class="nav-btn" data-action="goto" data-page="applications" data-roles="student"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-file"/></svg> Applications</button>
+      <button class="nav-btn" data-action="goto" data-page="tracking" data-roles="student"><svg class="nav-icon ico" aria-hidden="true"><use href="#i-banknote"/></svg> Tracking</button>
     </nav>
 
     <div class="sidebar-footer">
@@ -145,7 +160,8 @@
 
     <header class="topbar">
       <button class="menu-btn" data-action="toggle-menu" aria-label="Open or close menu">&#9776;</button>
-      <h2 id="page-title">Dashboard</h2>
+      <span class="topbar-brand" aria-hidden="true"><img class="brand-logo" src="img/iskolektib-192.webp" width="32" height="32" alt=""><span class="brand-name">i<span>SKOLEKTIB</span></span></span>
+      <h2 id="page-title">Home</h2>
       <span class="student-chip" id="student-chip">No profile yet</span>
     </header>
 
@@ -156,7 +172,70 @@
       Nothing you do here is sent to UP Mindanao, any scholarship provider, or any government agency.
     </div>
 
-    <main class="content">
+    <main class="content" id="main-content" tabindex="-1">
+
+      <!-- STUDENT HOME: landing page after sign-in -->
+      <section id="page-home" class="page active">
+        <div class="home-hero" id="home-hero">
+          <img class="home-hero-img" src="img/campus-aerial-2000.webp" srcset="img/campus-aerial-1000.webp 1000w, img/campus-aerial-2000.webp 2000w" sizes="100vw" width="2000" height="1000" fetchpriority="high" decoding="async" alt="Aerial view of the UP Mindanao campus with the Oblation plaza and Mt. Apo behind the coconut palms">
+          <div class="home-hero-main">
+            <p class="home-hello" id="home-hello" data-enter style="--i:0">Welcome</p>
+            <h1 class="home-title" data-enter style="--i:1"><span class="light">Your scholarships</span><strong>in one collective</strong></h1>
+            <p class="home-sub" data-enter style="--i:2">Browse listings from the Scholarship and Financial Assistance Section, see which ones you qualify for, and keep track of every application.</p>
+            <form class="home-search" id="home-search" role="search" aria-label="Search scholarships" data-enter style="--i:3">
+              <div class="hs-field"><label for="hs-q">Keyword</label><input type="search" id="hs-q" placeholder="Name or provider" autocomplete="off"></div>
+              <div class="hs-field"><label for="hs-course">Program</label><select id="hs-course"></select></div>
+              <div class="hs-field"><label for="hs-year">Year level</label><select id="hs-year"></select></div>
+              <div class="hs-field"><label for="hs-type">Type</label><select id="hs-type"></select></div>
+              <button type="submit" class="btn btn-gold hs-submit"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>Search</button>
+            </form>
+            <div class="home-quick" data-enter style="--i:4">
+              <button type="button" class="link-light" data-action="goto" data-page="matching">See my matches</button>
+              <button type="button" class="link-light" data-action="browse-all">Browse all scholarships</button>
+            </div>
+          </div>
+          <div class="home-hero-foot"><div class="wrap home-hero-foot-row">
+            <p id="home-fact" class="home-fact"></p>
+            <p class="home-notice">Demonstration prototype. Listings are based on OSA emails and may be incomplete. Nothing here is sent to UP Mindanao.</p>
+          </div></div>
+        </div>
+
+        <section class="home-section home-picks" aria-labelledby="home-picks-title"><div class="wrap">
+          <div class="home-head"><div><h2 id="home-picks-title">Open scholarships</h2><p id="home-picks-sub" class="home-lede"></p></div>
+            <button type="button" class="btn btn-secondary" data-action="browse-all">See all scholarships</button></div>
+          <div class="pick-grid" id="home-picks"></div>
+        </div></section>
+
+        <section class="home-section home-lists" aria-label="Deadlines and applications"><div class="wrap home-lists-grid">
+          <div class="home-panel"><div class="home-head tight"><h2>Closing soon</h2><button type="button" class="btn btn-ghost btn-small" data-action="browse-all">Browse all</button></div><div id="home-deadlines"></div></div>
+          <div class="home-panel"><div class="home-head tight"><h2>Your applications</h2><button type="button" class="btn btn-ghost btn-small" data-action="goto" data-page="applications">View all</button></div><div id="home-apps"></div></div>
+        </div></section>
+
+        <section class="home-section home-flow" aria-labelledby="home-flow-title"><div class="wrap flow-grid">
+          <div class="flow-photo"><img src="img/university-library-1200.webp" srcset="img/university-library-640.webp 640w, img/university-library-1200.webp 1200w" sizes="(max-width: 900px) 100vw, 44vw" width="1200" height="800" loading="lazy" decoding="async" alt="The UP Mindanao University Library seen from the lawn, with coconut palms behind it"></div>
+          <div class="flow-copy">
+            <h2 id="home-flow-title">Apply and follow up without leaving iSKOLEKTIB</h2>
+            <p class="home-lede">Everything runs from one account, so the details you save once carry into each step.</p>
+            <ul class="flow-list">
+              <li><button type="button" class="flow-row" data-action="goto" data-page="matching"><span class="flow-ico"><svg class="ico" aria-hidden="true"><use href="#i-target"/></svg></span><span class="flow-text"><strong>Scholarship Matching</strong><span>Save your GWA, program and family income once. Every listing is checked against them.</span></span><svg class="ico flow-go" aria-hidden="true"><use href="#i-chevron"/></svg></button></li>
+              <li><button type="button" class="flow-row" data-action="browse-all"><span class="flow-ico"><svg class="ico" aria-hidden="true"><use href="#i-grid"/></svg></span><span class="flow-text"><strong>Scholarship Marketplace</strong><span>Search every listing by program, year level and type, and compare deadlines.</span></span><svg class="ico flow-go" aria-hidden="true"><use href="#i-chevron"/></svg></button></li>
+              <li><button type="button" class="flow-row" data-action="goto" data-page="applications"><span class="flow-ico"><svg class="ico" aria-hidden="true"><use href="#i-file"/></svg></span><span class="flow-text"><strong>My Applications</strong><span>Fill in one form, attach each required document and save a draft until you are ready.</span></span><svg class="ico flow-go" aria-hidden="true"><use href="#i-chevron"/></svg></button></li>
+              <li><button type="button" class="flow-row" data-action="goto" data-page="tracking"><span class="flow-ico"><svg class="ico" aria-hidden="true"><use href="#i-banknote"/></svg></span><span class="flow-text"><strong>Tracking &amp; Disbursement</strong><span>Keep a record of each application's status and every payment you receive.</span></span><svg class="ico flow-go" aria-hidden="true"><use href="#i-chevron"/></svg></button></li>
+            </ul>
+          </div>
+        </div></section>
+
+        <section class="home-close" aria-labelledby="home-close-title"><div class="wrap">
+          <h2 id="home-close-title"><span class="light">Start with the scholarships</span> <strong>that fit you</strong></h2>
+          <div class="home-close-actions"><button type="button" class="btn btn-gold btn-lg" data-action="goto" data-page="matching">Find my matches</button><button type="button" class="btn btn-outline-light btn-lg" data-action="browse-all">Browse all scholarships</button></div>
+        </div></section>
+
+        <footer class="home-foot"><div class="wrap">
+          <p><strong>NOTICE:</strong> iSKOLEKTIB is a demonstration prototype for MGT 101, not an official UP system. Listings are based on emails sent by the Scholarship and Financial Assistance Section, OSA UP Mindanao, and may be incomplete or inaccurate. It does not connect to any real university database. Nothing you do here is sent to UP Mindanao, any scholarship provider, or any government agency.</p>
+          <p class="home-credit">Campus photograph by Jonathan Madrid.</p>
+        </div></footer>
+      </section>
+
 
       <!-- ============ ADMIN: MANAGE SCHOLARSHIPS ============ -->
       <section id="page-manage" class="page">
@@ -303,7 +382,7 @@
         <div id="sa-detail-view" class="hidden"><div id="sa-detail"></div></div>
       </section>
 
-      <section id="page-dashboard" class="page active">
+      <section id="page-dashboard" class="page">
         <div class="card welcome">
           <h3 id="welcome-title">Welcome, Iskx!</h3>
           <p>All Scholars, One Collective. Discover, match, apply for, and track scholarships in one place.</p>
@@ -542,7 +621,7 @@
 <!-- Libraries: PDF.js reads text from announcement PDFs; Supabase is the shared database -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="config.js?v=20261125b"></script>
-<script src="script.js?v=20261125b"></script>
+<script src="config.js?v=20261125d"></script>
+<script src="script.js?v=20261125d"></script>
 </body>
 </html>
