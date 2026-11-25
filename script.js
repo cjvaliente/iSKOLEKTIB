@@ -1639,6 +1639,150 @@ function renderDashboard() {
 }
 
 
+/* =====================================================================
+   STUDENT HOME (landing page after sign-in). All data comes from the same
+   arrays as the other pages; nothing here is invented.
+   ===================================================================== */
+const HOME_TILES = ['tile-coral', 'tile-lavender', 'tile-mist', 'tile-butter'];
+const HOME_PICK_LIMIT = 6;
+let homeSeedKey = '';
+let homeEntered = false;
+let homeScrollTick = false;
+
+function byDeadline(a, b) {
+  if (!a.deadline && !b.deadline) return 0;
+  if (!a.deadline) return 1;
+  if (!b.deadline) return -1;
+  return a.deadline.localeCompare(b.deadline);
+}
+function monogram(x) {
+  const m = /\(([A-Za-z]{2,4})\)/.exec(x.provider || '');
+  if (m) return m[1].toUpperCase();
+  const w = String(x.provider || x.name || '').replace(/\([^)]*\)/g, ' ').split(/\s+/).filter(function (t) { return /^[A-Za-z]/.test(t) && !/^(of|the|and|for|to|inc\.?)$/i.test(t); });
+  return (w.slice(0, 2).map(function (t) { return t.charAt(0); }).join('') || '?').toUpperCase();
+}
+function tileHTML(x) {
+  let h = 0; const t = String(x.name || '');
+  for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+  return '<span class="pick-tile ' + HOME_TILES[h % HOME_TILES.length] + '" aria-hidden="true">' + (logoHtml(x) || esc(monogram(x))) + '</span>';
+}
+function pickCardHTML(x, level) {
+  const amount = Number(x.benefitAmount) > 0 ? peso(x.benefitAmount) + '<small>per release</small>' : '<span class="muted">Not stated</span>';
+  const badge = level === 'full' ? '<span class="badge badge-green">Full match</span>' : level === 'partial' ? '<span class="badge badge-amber">Partial match</span>' : '';
+  return '<article class="pick"><div class="pick-top">' + tileHTML(x) + '<span class="badge badge-gray">' + esc(x.type) + '</span></div>' +
+    '<h3 class="pick-title"><button type="button" class="pick-link" data-action="view" data-id="' + x.id + '">' + esc(x.name) + '</button></h3>' +
+    '<p class="pick-provider">' + esc(x.provider) + '</p>' +
+    '<dl class="pick-facts"><div><dt>Amount</dt><dd>' + amount + '</dd></div><div><dt>Deadline</dt><dd>' + esc(formatDate(x.deadline)) + '</dd></div></dl>' +
+    '<div class="pick-foot">' + badge + deadlineBadge(x.deadline) + '</div></article>';
+}
+function homePicks() {
+  const open = scholarships.filter(function (x) { return x.published !== false && !isClosed(x); }).sort(byDeadline);
+  const u = currentUser || {};
+  const out = { title: 'Open scholarships', sub: '', items: [], cta: false };
+  if (profile) {
+    const full = computeMatches(profile).filter(function (m) { return !isClosed(m.scholarship); });
+    if (full.length) {
+      out.title = 'Scholarships that fit your profile';
+      out.sub = 'You meet every requirement listed for these.';
+      out.items = full.slice(0, HOME_PICK_LIMIT).map(function (m) { return { sch: m.scholarship, level: 'full' }; });
+    } else {
+      out.sub = 'None of the open listings is a full match for your profile yet. Partial matches are marked.';
+      out.items = open.slice(0, HOME_PICK_LIMIT).map(function (x) { return { sch: x, level: checkEligibility(x, profile).level }; });
+    }
+    return out;
+  }
+  out.cta = true;
+  const fits = (u.course && u.yearLevel) ? open.filter(function (x) {
+    return (x.courses.includes('Any') || x.courses.includes(u.course)) && x.yearLevels.includes(u.yearLevel);
+  }) : [];
+  if (fits.length) {
+    out.title = 'Open for your program and year';
+    out.sub = u.course + ', ' + yearLabel(u.yearLevel) + '. Add your GWA and family income to see exact matches.';
+    out.items = fits.slice(0, HOME_PICK_LIMIT - 1).map(function (x) { return { sch: x, level: '' }; });
+  } else {
+    out.sub = 'Add your GWA and family income to see which ones fit you.';
+    out.items = open.slice(0, HOME_PICK_LIMIT - 1).map(function (x) { return { sch: x, level: '' }; });
+  }
+  return out;
+}
+function renderHome() {
+  if (!session || isAdmin() || !$('home-picks')) return;
+  const published = scholarships.filter(function (x) { return x.published !== false; });
+  const open = published.filter(function (x) { return !isClosed(x); }).sort(byDeadline);
+  $('home-hello').textContent = 'Welcome, ' + (String(session.name || '').trim().split(/\s+/)[0] || 'Iskolar');
+  $('home-fact').textContent = published.length === 0 ? 'No scholarships have been published yet.'
+    : open.length === 0 ? 'None of the ' + published.length + ' listed scholarships is open right now.'
+    : open.length + ' of ' + published.length + ' scholarship' + (published.length === 1 ? '' : 's') + (open.length === 1 ? ' is' : ' are') + ' open for applications.';
+
+  const seedKey = (currentUser ? currentUser.email : '') + '|' + (profile ? profile.course + '|' + profile.yearLevel : '');
+  if (seedKey !== homeSeedKey) {
+    homeSeedKey = seedKey;
+    const p = profile || {}, u = currentUser || {};
+    $('hs-course').value = p.course || u.course || '';
+    $('hs-year').value = String(p.yearLevel || u.yearLevel || '');
+  }
+
+  const picks = homePicks();
+  $('home-picks-title').textContent = picks.title;
+  $('home-picks-sub').textContent = picks.sub;
+  $('home-picks-sub').classList.toggle('hidden', !picks.sub);
+  let html = picks.items.length === 0
+    ? '<p class="home-empty" style="grid-column: 1 / -1">No scholarships are open right now. New listings appear here after the Scholarship and Financial Assistance Section posts them.</p>'
+    : picks.items.map(function (it) { return pickCardHTML(it.sch, it.level); }).join('');
+  if (picks.cta) {
+    html += '<article class="pick pick-cta"><h3>Get exact matches</h3><p>Save your GWA, family income and aid status once, and every listing is checked against them.</p>' +
+      '<button type="button" class="btn btn-primary" data-action="goto" data-page="matching">Create my profile</button></article>';
+  }
+  $('home-picks').innerHTML = html;
+
+  $('home-deadlines').innerHTML = open.length === 0 ? '<p class="home-empty">No scholarships are open right now.</p>' :
+    open.slice(0, 5).map(function (x) {
+      const d = x.deadline ? parseISO(x.deadline) : null;
+      const date = d ? '<span class="dl-month">' + d.toLocaleDateString('en-US', { month: 'short' }) + '</span><span class="dl-day">' + d.getDate() + '</span>'
+        : '<span class="dl-month">Open</span><span class="dl-day">-</span>';
+      return '<button type="button" class="dl-row" data-action="view" data-id="' + x.id + '"><span class="dl-date">' + date + '</span>' +
+        '<span class="dl-main"><span class="dl-name">' + esc(x.name) + '</span><span class="dl-meta">' + esc(x.provider) + '</span></span>' + deadlineBadge(x.deadline) + '</button>';
+    }).join('');
+
+  const mine = applications.slice().sort(function (a, b) { return b.id - a.id; }).slice(0, 4);
+  $('home-apps').innerHTML = mine.length === 0
+    ? '<p class="home-empty">You have not started an application yet. Pick a scholarship, fill in one form and attach the required documents.</p><button type="button" class="btn btn-primary" data-action="home-new-app">Start an application</button>'
+    : mine.map(function (a) {
+        const x = findScholarship(a.scholarshipId);
+        const meta = a.status === 'Draft' ? 'Draft, not submitted' : (a.dateSubmitted ? 'Submitted ' + formatDate(a.dateSubmitted) : '');
+        return '<div class="app-row"><div class="dl-main"><span class="dl-name">' + esc(x ? x.name : (a.scholarshipName || 'Removed scholarship')) + '</span>' +
+          (meta ? '<span class="dl-meta">' + esc(meta) + '</span>' : '') + '</div>' + statusBadge(a.status) + '</div>';
+      }).join('');
+}
+// Hero search: copies the choices into the Marketplace filters and opens it
+function handleHomeSearch(e) {
+  e.preventDefault();
+  $('m-search').value = val('hs-q').trim();
+  $('f-course').value = val('hs-course');
+  $('f-year').value = val('hs-year');
+  $('f-type').value = val('hs-type');
+  $('m-sort').value = 'asc';
+  showPage('marketplace');
+}
+function playHomeEntrance() {
+  if (homeEntered) return;
+  homeEntered = true;
+  $('home-hero').classList.add('is-entering');
+}
+// Header is transparent over the photo, solid once the hero has scrolled away
+function updateHomeHeader() {
+  homeScrollTick = false;
+  const b = document.body;
+  if (!b.classList.contains('on-home')) { b.classList.remove('home-scrolled'); return; }
+  const hero = $('home-hero');
+  b.classList.toggle('home-scrolled', !!hero && window.scrollY > hero.offsetHeight - (window.innerWidth > 900 ? 90 : 60));
+}
+window.addEventListener('scroll', function () {
+  if (homeScrollTick) return;
+  homeScrollTick = true; requestAnimationFrame(updateHomeHeader);
+}, { passive: true });
+window.addEventListener('resize', updateHomeHeader);
+
 function renderAll() {
   renderRoleInfo();
   if (isAdmin()) {
@@ -1646,6 +1790,7 @@ function renderAll() {
     renderManage();
     renderStudentApps();
   } else {
+    renderHome();
     renderDashboard();
     renderMarketplace();
     renderApplications();
@@ -1884,7 +2029,7 @@ function parseScholarshipText(text) {
    ===================================================================== */
 
 const ROLE_PAGES = {
-  student: ['dashboard', 'matching', 'marketplace', 'applications', 'tracking'],
+  student: ['home', 'dashboard', 'matching', 'marketplace', 'applications', 'tracking'],
   admin: ['manage', 'studentapps', 'marketplace']
 };
 
@@ -1892,7 +2037,7 @@ let selectedRole = 'student';   // the account type chosen on the sign-in screen
 let registeringEmail = '';      // set while a first-time user fills in their profile
 
 function isAdmin() { return !!session && session.role === 'admin'; }
-function defaultPage() { return isAdmin() ? 'manage' : 'dashboard'; }
+function defaultPage() { return isAdmin() ? 'manage' : 'home'; }   // students land on Home after signing in
 function pageAllowed(name) { return !!session && ROLE_PAGES[session.role].includes(name); }
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
 
@@ -2136,6 +2281,8 @@ async function signOut() {
   closeMenu();
   editingAppId = null;
   editingScholarshipId = null;
+  homeEntered = false; homeSeedKey = '';
+  $('hs-q').value = '';
   pickRole('student');
   showLoginStep('signin');
   showSessionScreen();
@@ -2143,7 +2290,7 @@ async function signOut() {
 }
 
 function showSessionScreen() {
-  if (!session) { document.body.classList.add('logged-out'); return; }
+  if (!session) { document.body.classList.add('logged-out'); document.body.classList.remove('on-home', 'home-scrolled'); return; }
   document.body.classList.remove('logged-out');
   applyRole();
   showPage(defaultPage());
@@ -2666,6 +2813,7 @@ async function saveReview() {
    ===================================================================== */
 
 const PAGE_TITLES = {
+  home: 'Home',
   dashboard: 'Dashboard',
   matching: 'Scholarship Matching',
   marketplace: 'Scholarship Marketplace',
@@ -2684,6 +2832,7 @@ function showPage(name) {
     b.classList.toggle('active', b.dataset.page === name);
   });
   $('page-title').textContent = PAGE_TITLES[name];
+  document.body.classList.toggle('on-home', name === 'home');   // transparent header over the hero
 
   showAppForm(false);        // always start on the application list
   showAppFlash('');
@@ -2695,6 +2844,8 @@ function showPage(name) {
   closeMenu();
   renderAll();
   window.scrollTo(0, 0);
+  if (name === 'home') playHomeEntrance();
+  updateHomeHeader();
   refreshData().then(renderAll);   // pick up changes made by other users
 }
 
@@ -2758,6 +2909,8 @@ document.addEventListener('click', function (e) {
 
   switch (action) {
     case 'goto': showPage(el.dataset.page); break;
+    case 'browse-all': clearFilters(); showPage('marketplace'); break;
+    case 'home-new-app': showPage('applications'); openNewAppForm(); break;
     case 'toggle-menu': toggleMenu(); break;
     case 'reset-data': resetDemoData(); break;
     case 'find-matches': handleFindMatches(); break;
@@ -2827,6 +2980,10 @@ async function startApp() {
   fillSelect('reg-course', COURSES, 'Select your program');
   fillSelect('reg-year', YEARS.map(function (y) { return { value: y, label: yearLabel(y) }; }), 'Select year level');
   fillSelect('sa-status', REVIEW_STATUSES, 'All statuses');
+  fillSelect('hs-course', COURSES, 'All programs');
+  fillSelect('hs-year', YEARS.map(function (y) { return { value: y, label: yearLabel(y) }; }), 'All year levels');
+  fillSelect('hs-type', TYPES, 'All types');
+  $('home-search').addEventListener('submit', handleHomeSearch);
 
   buildScholarshipFormChoices();
 
