@@ -2022,8 +2022,10 @@ function parseScholarshipText(text) {
 
 /* =====================================================================
    8B. SIGN-IN, ROLES AND ADMIN SCHOLARSHIP MANAGEMENT
-   Cloud mode uses Supabase Auth: email + password (no email verification / OTP step)
+   Cloud mode uses Supabase Auth: email + password with an emailed verification code (OTP),
    or "Continue with Google" (OAuth).
+   The code email only goes out if "Confirm email" is ON in Supabase (Authentication > Providers > Email)
+   and custom SMTP (Brevo) is configured.
    Admin rights are granted ONLY by the server (the claim_admin function in setup.sql), never by this file.
    Local demo mode (no config.js keys) has no real security.
    ===================================================================== */
@@ -2035,6 +2037,8 @@ const ROLE_PAGES = {
 
 let selectedRole = 'student';   // the account type chosen on the sign-in screen
 let registeringEmail = '';      // set while a first-time user fills in their profile
+let pendingOtpEmail = '';       // set while a new user must type the emailed verification code
+let otpCooldownTimer = null;    // stops "Resend code" from being spammed
 
 function isAdmin() { return !!session && session.role === 'admin'; }
 function defaultPage() { return isAdmin() ? 'manage' : 'home'; }   // students land on Home after signing in
@@ -2061,8 +2065,8 @@ function pickRole(role) {
   $('reg-title').textContent = 'Welcome! Create your ' + (role === 'admin' ? 'admin staff' : 'student') + ' profile';
 }
 
-function showLoginStep(step) {   // 'signin', 'signup' or 'register'
-  ['signin', 'signup', 'register'].forEach(function (n) {
+function showLoginStep(step) {   // 'signin', 'signup', 'otp' or 'register'
+  ['signin', 'signup', 'otp', 'register'].forEach(function (n) {
     $('login-' + n).classList.toggle('hidden', step !== n);
   });
 }
@@ -2080,9 +2084,12 @@ async function handleSignIn() {
     if (sb) {
       const res = await sb.auth.signInWithPassword({ email: email, password: pass });
       if (res.error) {
-        showLoginError(/not confirmed/i.test(res.error.message)
-          ? 'This account was created while email confirmation was still turned on in Supabase. Turn off "Confirm email" (Authentication > Providers > Email) and create the account again.'
-          : 'Incorrect email or password.');
+        if (/not confirmed/i.test(res.error.message)) {
+          // The account exists but the email was never verified: send a fresh code and ask for it
+          await startOtpStep(email, true);
+          return;
+        }
+        showLoginError('Incorrect email or password.');
         return;
       }
     }
@@ -2152,7 +2159,7 @@ async function finishAuthenticated(email) {
   else openRegistration(email);
 }
 
-// ----- Create account: no email verification; go straight to the profile step -----
+// ----- Create account: Supabase emails a verification code, then the profile step -----
 async function handleSignUp() {
   const email = val('signup-email').trim().toLowerCase();
   const pass = val('signup-pass');
@@ -2166,21 +2173,108 @@ async function handleSignUp() {
   $('signup-btn').disabled = true;
   try {
     const res = await sb.auth.signUp({ email: email, password: pass });
-    if (res.error) { setBoxError('signup-error', res.error.message); return; }
-    if (!res.data.session) {
-      // Supabase still has "Confirm email" turned on, so no session was issued. Try signing in directly.
-      const login = await sb.auth.signInWithPassword({ email: email, password: pass });
-      if (login.error) {
-        setBoxError('signup-error', 'Supabase still requires email confirmation. Turn off "Confirm email" (Authentication > Providers > Email) and try again.');
-        return;
-      }
+    if (res.error) { setBoxError('signup-error', friendlyAuthError(res.error)); return; }
+
+    // "Confirm email" is OFF in Supabase: it signed the person in at once and sent NO code.
+    // Refuse to continue, because an unverified address could be claimed by anyone.
+    if (res.data.session) {
+      await sb.auth.signOut();
+      setBoxError('signup-error', 'No verification code was sent because "Confirm email" is turned off in Supabase. Turn it on (Authentication > Providers > Email), delete this test account under Authentication > Users, then try again.');
+      return;
     }
-    await finishAuthenticated(email);
+
+    // Supabase hides whether an address is already registered: for an existing, verified account it
+    // returns a user with no identities and sends no email.
+    if (res.data.user && Array.isArray(res.data.user.identities) && res.data.user.identities.length === 0) {
+      setBoxError('signup-error', 'This email address already has an account. Please sign in.');
+      return;
+    }
+
+    pendingOtpEmail = email;
+    $('otp-email-text').textContent = email;
+    $('otp-code').value = '';
+    setBoxError('otp-error', '');
+    showLoginStep('otp');
+    startOtpCooldown();
   } catch (e) {
     setBoxError('signup-error', 'Could not create the account: ' + (e.message || e));
   } finally {
     $('signup-btn').disabled = false;
   }
+}
+
+// Turn Supabase's raw error text into something a student can act on
+function friendlyAuthError(err) {
+  const m = String((err && err.message) || err || '');
+  if (/rate limit|too many|security purposes/i.test(m)) return 'Too many emails were requested. Please wait a minute and try again.';
+  if (/error sending|smtp|unexpected_failure/i.test(m)) return 'The verification email could not be sent. The SMTP (Brevo) settings in Supabase need to be fixed: ' + m;
+  return m;
+}
+
+// ----- Verification code step -----
+// Used when signing in to an account whose email was never verified
+async function startOtpStep(email, sendNew) {
+  pendingOtpEmail = email;
+  $('otp-email-text').textContent = email;
+  $('otp-code').value = '';
+  setBoxError('otp-error', '');
+  showLoginStep('otp');
+  if (!sendNew) return;
+  const r = await sb.auth.resend({ type: 'signup', email: email });
+  if (r.error) setBoxError('otp-error', friendlyAuthError(r.error)); else startOtpCooldown();
+}
+
+async function handleOtpVerify() {
+  const token = val('otp-code').replace(/\s+/g, '');
+  if (!token) { setBoxError('otp-error', 'Please enter the verification code from your email.'); return; }
+  setBoxError('otp-error', '');
+  $('otp-btn').disabled = true;
+  try {
+    const res = await sb.auth.verifyOtp({ email: pendingOtpEmail, token: token, type: 'signup' });
+    if (res.error) {
+      setBoxError('otp-error', /expired|invalid/i.test(res.error.message)
+        ? 'That code is incorrect or has expired. Check the newest email, or tap "Resend code".'
+        : friendlyAuthError(res.error));
+      return;
+    }
+    const email = pendingOtpEmail;
+    pendingOtpEmail = '';
+    await finishAuthenticated(email);        // verified and signed in: load the profile or ask for one
+  } catch (e) {
+    setBoxError('otp-error', 'Could not verify the code: ' + (e.message || e));
+  } finally {
+    $('otp-btn').disabled = false;
+  }
+}
+
+async function handleOtpResend() {
+  if (!pendingOtpEmail) return;
+  setBoxError('otp-error', '');
+  const r = await sb.auth.resend({ type: 'signup', email: pendingOtpEmail });
+  if (r.error) { setBoxError('otp-error', friendlyAuthError(r.error)); return; }
+  showToast('A new verification code was sent.');
+  startOtpCooldown();
+}
+
+// Disable "Resend code" for 60 seconds after each send
+function startOtpCooldown() {
+  const btn = $('otp-resend');
+  let left = 60;
+  clearInterval(otpCooldownTimer);
+  btn.disabled = true;
+  btn.textContent = 'Resend code (' + left + 's)';
+  otpCooldownTimer = setInterval(function () {
+    left--;
+    if (left <= 0) { clearInterval(otpCooldownTimer); btn.disabled = false; btn.textContent = 'Resend code'; }
+    else btn.textContent = 'Resend code (' + left + 's)';
+  }, 1000);
+}
+
+function otpBack() {
+  clearInterval(otpCooldownTimer);
+  pendingOtpEmail = '';
+  setBoxError('otp-error', '');
+  showLoginStep('signin');
 }
 
 // ----- Profile step (first sign-in only) -----
@@ -2935,6 +3029,8 @@ document.addEventListener('click', function (e) {
     case 'reg-cancel': cancelRegistration(); break;
     case 'go-signup': showLoginError(''); showLoginStep('signup'); break;
     case 'go-signin': setBoxError('signup-error', ''); showLoginStep('signin'); break;
+    case 'otp-resend': handleOtpResend(); break;
+    case 'otp-back': otpBack(); break;
     case 'google-signin': signInWithGoogle(); break;
     case 'sign-out': signOut(); break;
     case 'admin-new': openScholarshipForm(); break;
@@ -2991,6 +3087,7 @@ async function startApp() {
   $('login-form').addEventListener('submit', function (e) { e.preventDefault(); handleSignIn(); });
   $('register-form').addEventListener('submit', function (e) { e.preventDefault(); handleRegister(); });
   $('signup-form').addEventListener('submit', function (e) { e.preventDefault(); handleSignUp(); });
+  $('otp-form').addEventListener('submit', function (e) { e.preventDefault(); handleOtpVerify(); });
   $('sch-form').addEventListener('submit', function (e) { e.preventDefault(); });
   $('app-form').addEventListener('submit', function (e) { e.preventDefault(); });
   $('profile-form').addEventListener('submit', function (e) { e.preventDefault(); handleSaveProfile(); });
